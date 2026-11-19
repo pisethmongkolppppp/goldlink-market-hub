@@ -34,3 +34,4 @@ use the editor.
 - Shared page chrome (header, footer, page header, status badges, charts) lives in `src/components/site/`; each section of the site is its own route file — keeps pages independently shareable.
 - Never show invented market prices: price slots render empty with a "not connected" badge, and chart curves come only from `src/lib/illustrative.ts` and are labelled illustrative — no market data source is connected yet.
 - Converter and demo-exchange math live in pure modules in `src/lib/` (`conversion.ts`, `exchange.ts`) with tests beside them — keeps rules testable apart from the UI.
+- Client-side dependencies used by pages are listed in `optimizeDeps.include` in vite.config.ts — late discovery re-optimizes mid-session and loads duplicate React.

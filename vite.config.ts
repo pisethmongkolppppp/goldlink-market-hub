@@ -15,4 +15,22 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    // Pre-bundle client deps up front: late discovery re-optimizes mid-session and can load
+    // two React copies ("Cannot read properties of null (reading 'useContext')").
+    optimizeDeps: {
+      include: [
+        "recharts",
+        "lucide-react",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge",
+        "@radix-ui/react-dialog",
+        "@radix-ui/react-slot",
+        "@radix-ui/react-tabs",
+        "@radix-ui/react-label",
+        "@radix-ui/react-select",
+      ],
+    },
+  },
 });
