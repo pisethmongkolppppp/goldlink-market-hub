@@ -28,3 +28,9 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+
+- Shared page chrome (header, footer, page header, status badges, charts) lives in `src/components/site/`; each section of the site is its own route file — keeps pages independently shareable.
+- Never show invented market prices: price slots render empty with a "not connected" badge, and chart curves come only from `src/lib/illustrative.ts` and are labelled illustrative — no market data source is connected yet.
+- Converter and demo-exchange math live in pure modules in `src/lib/` (`conversion.ts`, `exchange.ts`) with tests beside them — keeps rules testable apart from the UI.
