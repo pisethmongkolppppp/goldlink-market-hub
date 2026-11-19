@@ -10,7 +10,7 @@ export function SiteFooter() {
           <Logo />
           <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
             GoldLink AI brings gold and cryptocurrency markets together in one clear, beginner-friendly
-            place. This is a design preview: no live market data is connected, and nothing here is
+            place. Market quotes may be unavailable; demo values are labelled. Nothing here is
             financial advice.
           </p>
         </div>
@@ -23,7 +23,7 @@ export function SiteFooter() {
         </nav>
       </div>
       <div className="border-t border-border/60 py-5 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} GoldLink AI · Preview build · Not financial advice
+        © {new Date().getFullYear()} GoldLink AI · Educational prototype · Not financial advice
       </div>
     </footer>
   );

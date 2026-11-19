@@ -30,21 +30,33 @@ const SUGGESTIONS = [
   "Is gold less risky than crypto?",
 ];
 
-const NOT_CONNECTED =
-  "Thanks for your question! I'm a preview of the GoldLink AI assistant and I'm not connected to an AI model yet, so I can't answer it for real. Once connected, I'll explain gold and crypto topics in plain language.";
+// Local educational knowledge base: no external model or API key required.
+function educationalAnswer(question: string): string {
+  const q = question.toLowerCase();
+  if (/buy|sell|invest|predict|recommend|profit|should i/.test(q)) return "I can explain market concepts, but cannot recommend purchases or predict returns. Gold and crypto prices can both fall.";
+  if (/troy|ounce|karat|purity/.test(q)) return "A troy ounce is 31.1034768 grams. Gold prices are usually quoted per troy ounce. Karats describe purity: 24K is nearly pure gold.";
+  if (/risk|volatil/.test(q)) return "Volatility measures how much prices change. Gold and cryptocurrencies can both lose value; crypto has often had larger price swings.";
+  if (/ethereum| ether|eth\b/.test(q)) return "Ethereum is a blockchain that supports smart contracts and applications. Bitcoin mainly focuses on transferring and recording digital value.";
+  if (/bitcoin|btc|digital gold/.test(q)) return "Bitcoin is sometimes called digital gold because its supply is limited to 21 million coins. Unlike physical gold, it exists on a digital network.";
+  if (/convert|gram|calculate/.test(q)) return "The converter multiplies the amount of crypto by its dollar price, then divides by the gold price per gram. It is a mathematical estimate, not an actual exchange.";
+  if (/chart|correlat/.test(q)) return "Indexed charts start each asset at 100 to compare relative changes. Correlation describes whether two assets move together. The sample charts are illustrative, not historical market data.";
+  if (/price|live|market/.test(q)) return "The dashboards request market quotes from CoinGecko and Gold-API.com. Check the source and timestamp; if a quote is unavailable, the displayed demo value is labelled.";
+  if (/gold/.test(q)) return "Gold is a precious metal used in jewellery, industry and as a store of value. Its price changes with supply, demand and economic conditions.";
+  return "I am a limited, rule-based educational assistant. Try asking about troy ounces, Bitcoin, Ethereum, gold, volatility or the converter.";
+}
 
 const CAPABILITIES = [
   "Explain market terms in plain language",
-  "Compare gold and crypto for your goals",
-  "Walk you through the converter and demo",
-  "Summarise what's moving prices (once data is connected)",
+  "Explain differences between gold and crypto",
+  "Explain the converter",
+  "Explain market data sources",
 ];
 
 function AssistantPage() {
   const [messages, setMessages] = useState<Msg[]>([
     {
       role: "assistant",
-      text: "Hi, I'm the GoldLink AI assistant. This is a preview — I'm not connected to an AI model yet, but here's how our conversation will look.",
+      text: "Hi! I am a rule-based educational assistant. Ask about gold, Bitcoin, Ethereum or market terms. I am not connected to a generative AI model.",
     },
   ]);
   const [draft, setDraft] = useState("");
@@ -52,7 +64,7 @@ function AssistantPage() {
   const send = (text: string) => {
     const t = text.trim();
     if (!t) return;
-    setMessages((m) => [...m, { role: "user", text: t }, { role: "assistant", text: NOT_CONNECTED }]);
+    setMessages((m) => [...m, { role: "user", text: t }, { role: "assistant", text: educationalAnswer(t) }]);
     setDraft("");
   };
 
@@ -68,7 +80,7 @@ function AssistantPage() {
         title={<>Ask anything about <span className="text-gradient-gold italic">gold & crypto.</span></>}
         description="A patient guide for beginners. Ask in your own words and get clear, jargon-free answers."
       >
-        <StatusBadge>AI not connected yet</StatusBadge>
+        <StatusBadge>Rule-based · no generative AI</StatusBadge>
       </PageHeader>
 
       <Section className="grid gap-6 py-10 lg:grid-cols-[1fr_20rem]">
@@ -79,7 +91,7 @@ function AssistantPage() {
             </span>
             <div>
               <p className="text-sm font-semibold">GoldLink Assistant</p>
-              <p className="text-xs text-muted-foreground">Preview mode</p>
+              <p className="text-xs text-muted-foreground">Educational knowledge base</p>
             </div>
           </div>
 
@@ -133,7 +145,7 @@ function AssistantPage() {
         </div>
 
         <aside className="panel h-fit p-6">
-          <h2 className="text-xl font-medium">What the assistant will do</h2>
+          <h2 className="text-xl font-medium">What the assistant can explain</h2>
           <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
             {CAPABILITIES.map((c) => (
               <li key={c} className="flex gap-2">

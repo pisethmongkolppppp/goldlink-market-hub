@@ -1,3 +1,6 @@
+import { goldPerGram } from "@/lib/market";
+import { formatUsd } from "@/lib/format";
+import { useMarketPrices } from "@/hooks/use-market-snapshot";
 import { createFileRoute } from "@tanstack/react-router";
 import { Info } from "lucide-react";
 
@@ -36,22 +39,23 @@ const DRIVERS = [
 ];
 
 function GoldPage() {
+  const market = useMarketPrices();
   return (
     <>
       <PageHeader
         eyebrow="Gold dashboard"
         title={<>The price of <span className="text-gradient-gold italic">gold</span>, made simple.</>}
-        description="Gold is priced per troy ounce (about 31.1 grams). Here you'll see it per ounce, gram and kilogram once a market data source is connected."
+        description="Gold is priced per troy ounce (about 31.1 grams). Here you'll see it per ounce, gram and kilogram using market quotes when available."
       >
-        <StatusBadge>Live data not connected</StatusBadge>
+        <StatusBadge>{market.status("XAU")}</StatusBadge>
       </PageHeader>
 
       <Section className="space-y-6 py-10">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <PriceTile label="Spot price" symbol="XAU / USD · per oz t" icon={<AssetIcon asset="gold" />} />
-          <PriceTile label="Per gram" symbol="USD / g" />
-          <PriceTile label="Per kilogram" symbol="USD / kg" />
-          <PriceTile label="24h change" symbol="Percent" note="Shown once connected" />
+          <PriceTile value={formatUsd(market.price("XAU").usd)} note={market.label("XAU")} status={market.status("XAU")} label="Spot price" symbol="XAU / USD · per oz t" icon={<AssetIcon asset="gold" />} />
+          <PriceTile value={formatUsd(goldPerGram(market.price("XAU").usd))} note={market.label("XAU")} status={market.status("XAU")} label="Per gram" symbol="USD / g" />
+          <PriceTile value={formatUsd(goldPerGram(market.price("XAU").usd) * 1000)} note={market.label("XAU")} status={market.status("XAU")} label="Per kilogram" symbol="USD / kg" />
+          <PriceTile label="24h change" symbol="Percent" note="Not supplied by current gold source" status="Unavailable" />
         </div>
 
         <div className="panel p-5 sm:p-6">

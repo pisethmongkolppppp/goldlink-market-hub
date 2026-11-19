@@ -6,11 +6,14 @@ export function PriceTile({
   symbol,
   icon,
   note = "Awaiting data source",
+  value, status = "Not connected",
 }: {
   label: string;
   symbol: string;
   icon?: ReactNode;
   note?: string;
+  value?: string;
+  status?: string;
 }) {
   return (
     <div className="panel flex flex-col gap-4 p-5">
@@ -23,12 +26,12 @@ export function PriceTile({
           </div>
         </div>
       </div>
-      <p className="tabular text-3xl font-medium text-foreground/40" aria-label="No value yet">
-        — —
+      <p className="tabular text-3xl font-medium text-foreground">
+        {value ?? "— —"}
       </p>
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs text-muted-foreground">{note}</span>
-        <StatusBadge>Not connected</StatusBadge>
+        <StatusBadge tone={status === "Demo" ? "demo" : "pending"}>{status}</StatusBadge>
       </div>
     </div>
   );

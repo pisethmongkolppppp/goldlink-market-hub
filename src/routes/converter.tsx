@@ -1,3 +1,4 @@
+import { useMarketPrices } from "@/hooks/use-market-snapshot";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowDown, Calculator, Eraser, RefreshCw } from "lucide-react";
 import { useState, type FormEvent } from "react";
@@ -12,10 +13,6 @@ import { cn } from "@/lib/utils";
 import { convertCryptoToGold, TROY_OUNCE_GRAMS, type GoldConversionResult } from "@/lib/conversion";
 import {
   DEMO_CRYPTOS,
-  DEMO_GOLD_PRICE_PER_GRAM_USD,
-  DEMO_GOLD_PRICE_PER_OZ_USD,
-  DEMO_PRICE_NOTE,
-  demoCryptoPrice,
   type CryptoSymbol,
 } from "@/lib/demo-prices";
 import { formatAmount, formatUsd } from "@/lib/format";
@@ -24,7 +21,7 @@ export const Route = createFileRoute("/converter")({
   head: () => ({
     meta: [
       { title: "Crypto to Gold Converter — GoldLink AI" },
-      { name: "description", content: "Turn Bitcoin or Ethereum into an equal weight of gold, in grams and troy ounces, using clearly labelled demonstration prices." },
+      { name: "description", content: "Turn Bitcoin or Ethereum into an equal weight of gold, in grams and troy ounces, using market quotes or clearly labelled demonstration prices." },
       { property: "og:title", content: "Crypto to Gold Converter — GoldLink AI" },
       { property: "og:description", content: "Convert Bitcoin or Ethereum into gold, shown in grams and troy ounces." },
       { property: "og:type", content: "website" },
@@ -36,15 +33,19 @@ export const Route = createFileRoute("/converter")({
 
 const toNum = (s: string) => (s.trim() === "" ? NaN : Number(s));
 
-type Converted = { coin: CryptoSymbol; amount: number; conversion: GoldConversionResult };
+type Converted = { coin: CryptoSymbol; amount: number; conversion: GoldConversionResult; cryptoPrice: number; goldGram: number; source: string };
 
 function ConverterPage() {
+  const market = useMarketPrices();
   const [coin, setCoin] = useState<CryptoSymbol>("BTC");
   const [amount, setAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Converted | null>(null);
 
-  const cryptoPrice = demoCryptoPrice(coin);
+  const cryptoPrice = market.price(coin).usd;
+  const goldOz = market.price("XAU").usd;
+  const goldGram = goldOz / TROY_OUNCE_GRAMS;
+  const live = !!market.price(coin).quote && !!market.price("XAU").quote;
   const coinLabel = DEMO_CRYPTOS.find((c) => c.value === coin)!.label;
 
   const convert = (e: FormEvent) => {
@@ -53,7 +54,7 @@ function ConverterPage() {
     const conversion = convertCryptoToGold({
       amount: value,
       cryptoPriceUsd: cryptoPrice,
-      goldPricePerGramUsd: DEMO_GOLD_PRICE_PER_GRAM_USD,
+      goldPricePerGramUsd: goldGram,
     });
     if (!conversion) {
       setResult(null);
@@ -61,7 +62,7 @@ function ConverterPage() {
       return;
     }
     setError(null);
-    setResult({ coin, amount: value, conversion });
+    setResult({ coin, amount: value, conversion, cryptoPrice, goldGram, source: `${market.label(coin)}; gold: ${market.label("XAU")}` });
   };
 
   const clear = () => {
@@ -71,16 +72,16 @@ function ConverterPage() {
     setResult(null);
   };
 
-  const stale = result !== null && (result.coin !== coin || toNum(amount) !== result.amount);
+  const stale = result !== null && (result.coin !== coin || toNum(amount) !== result.amount || result.cryptoPrice !== cryptoPrice || result.goldGram !== goldGram);
 
   return (
     <>
       <PageHeader
         eyebrow="Converter"
         title={<>Turn crypto into <span className="text-gradient-gold italic">gold</span> terms.</>}
-        description="Choose Bitcoin or Ethereum, enter an amount, and see the equal weight of gold in grams and troy ounces. The prices used here are demonstration values, not live market data."
+        description="Choose Bitcoin or Ethereum, enter an amount, and see the equal weight of gold in grams and troy ounces. Market quotes are used when available; missing quotes use clearly labelled demonstration values."
       >
-        <StatusBadge tone="demo">{DEMO_PRICE_NOTE}</StatusBadge>
+        <StatusBadge tone="demo">{live ? "Market quotes" : "Includes demonstration prices"}</StatusBadge>
       </PageHeader>
 
       <Section className="grid gap-6 py-10 lg:grid-cols-[1.3fr_1fr]">
@@ -107,7 +108,7 @@ function ConverterPage() {
                       <AssetIcon asset={c.value === "BTC" ? "btc" : "eth"} />
                       <span>
                         <span className="block text-sm font-medium">{c.label}</span>
-                        <span className="block text-xs text-muted-foreground">Demonstration price used</span>
+                        <span className="block text-xs text-muted-foreground">{market.status(c.value)}</span>
                       </span>
                     </button>
                   );
@@ -176,7 +177,7 @@ function ConverterPage() {
               </div>
               <p className="text-sm text-muted-foreground">
                 {result
-                  ? `${formatAmount(result.amount, 8)} ${result.coin} is worth ${formatUsd(result.conversion.usdValue)} at the demonstration prices shown below.`
+                  ? `${formatAmount(result.amount, 8)} ${result.coin} is worth ${formatUsd(result.conversion.usdValue)} using the prices captured at conversion. ${result.source}`
                   : "Enter an amount and press Convert to see the gold equivalent."}
               </p>
               {stale && (
@@ -192,7 +193,7 @@ function ConverterPage() {
           <div className="panel p-6">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-medium">Prices used</h2>
-              <StatusBadge tone="demo">Demonstration</StatusBadge>
+              <StatusBadge tone={live ? "pending" : "demo"}>{live ? "Market quotes" : "Demo fallback"}</StatusBadge>
             </div>
             <dl className="mt-4 space-y-3 text-sm">
               <div className="flex items-baseline justify-between gap-3">
@@ -201,11 +202,11 @@ function ConverterPage() {
               </div>
               <div className="flex items-baseline justify-between gap-3">
                 <dt className="text-muted-foreground">Gold per gram</dt>
-                <dd className="tabular font-medium">{formatUsd(DEMO_GOLD_PRICE_PER_GRAM_USD)}</dd>
+                <dd className="tabular font-medium">{formatUsd(goldGram)}</dd>
               </div>
               <div className="flex items-baseline justify-between gap-3">
                 <dt className="text-muted-foreground">Gold per troy ounce</dt>
-                <dd className="tabular font-medium">{formatUsd(DEMO_GOLD_PRICE_PER_OZ_USD)}</dd>
+                <dd className="tabular font-medium">{formatUsd(goldOz)}</dd>
               </div>
               <div className="flex items-baseline justify-between gap-3 border-t border-border/60 pt-3">
                 <dt className="text-muted-foreground">Grams per troy ounce</dt>
@@ -213,8 +214,7 @@ function ConverterPage() {
               </div>
             </dl>
             <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-              These are fixed demonstration values so the maths works end to end. They are not live market prices, and
-              no real cryptocurrency or gold is bought, sold or moved.
+              {market.label(coin)}. {market.label("XAU")}. No real cryptocurrency or gold is bought, sold or moved.
             </p>
           </div>
 

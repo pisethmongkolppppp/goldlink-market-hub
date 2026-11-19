@@ -1,3 +1,5 @@
+import { formatUsd } from "@/lib/format";
+import { useMarketPrices } from "@/hooks/use-market-snapshot";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { ChartLegend, IllustrativeChart } from "@/components/site/IllustrativeChart";
@@ -42,14 +44,15 @@ const COINS = [
 const METRICS = ["Price (USD)", "24h change", "Market cap", "24h volume"];
 
 function CryptoPage() {
+  const market = useMarketPrices();
   return (
     <>
       <PageHeader
         eyebrow="Crypto dashboard"
         title={<>Bitcoin & Ethereum, <span className="text-gradient-gold italic">side by side.</span></>}
-        description="The two largest cryptocurrencies in one view. Prices, changes and volumes will appear here once a market data source is connected."
+        description="The two largest cryptocurrencies in one view. Prices, changes and volumes are shown when available, with labelled demonstration fallbacks."
       >
-        <StatusBadge>Live data not connected</StatusBadge>
+        <StatusBadge>{market.query.isPending ? "Loading quotes" : "Market data"}</StatusBadge>
       </PageHeader>
 
       <Section className="space-y-6 py-10">
@@ -64,16 +67,17 @@ function CryptoPage() {
                     <p className="text-xs text-muted-foreground">{c.sym} / USD</p>
                   </div>
                 </div>
-                <StatusBadge>Not connected</StatusBadge>
+                <StatusBadge>{market.status(c.key === "btc" ? "BTC" : "ETH")}</StatusBadge>
               </div>
               <div className="mt-6 grid grid-cols-2 gap-3">
-                {METRICS.map((m) => (
+                {METRICS.map((m, i) => (
                   <div key={m} className="rounded-lg border border-border bg-background/40 p-3">
                     <p className="text-xs text-muted-foreground">{m}</p>
-                    <p className="tabular mt-1 text-xl text-foreground/40">— —</p>
+                    <p className="tabular mt-1 text-xl text-foreground">{(() => { const p = market.price(c.key === "btc" ? "BTC" : "ETH"); const v = [p.usd, p.quote?.change24hPct, p.quote?.marketCapUsd, p.quote?.volume24hUsd][i]; return v == null ? "—" : i === 1 ? `${v.toFixed(2)}%` : formatUsd(v); })()}</p>
                   </div>
                 ))}
               </div>
+              <p className="mt-3 text-xs text-muted-foreground">{market.label(c.key === "btc" ? "BTC" : "ETH")}</p>
               <div className="mt-5">
                 <IllustrativeChart keys={[c.key]} height={160} seed={c.key === "btc" ? 3 : 7} />
                 <p className="mt-2 text-right text-xs text-muted-foreground">Illustrative shape, not market data</p>

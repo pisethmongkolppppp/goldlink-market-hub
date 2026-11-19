@@ -1,3 +1,5 @@
+import { formatUsd } from "@/lib/format";
+import { useMarketPrices } from "@/hooks/use-market-snapshot";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
@@ -54,6 +56,7 @@ const STEPS = [
 ];
 
 function Home() {
+  const market = useMarketPrices();
   return (
     <>
       <section className="relative overflow-hidden">
@@ -61,7 +64,7 @@ function Home() {
         <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 pt-16 pb-20 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:px-8 lg:pt-24">
           <div className="animate-rise">
             <StatusBadge tone="demo">
-              <Sparkles className="size-3" /> Design preview
+              <Sparkles className="size-3" /> Educational prototype
             </StatusBadge>
             <h1 className="mt-6 text-5xl font-medium leading-[1.05] sm:text-6xl lg:text-7xl">
               Connect Digital Assets with <span className="text-gradient-gold italic">Real Gold Value.</span>
@@ -90,7 +93,7 @@ function Home() {
           <div className="panel relative animate-rise p-5 sm:p-6" style={{ animationDelay: "120ms" }}>
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium">Market overview</p>
-              <StatusBadge>Live data not connected</StatusBadge>
+              <StatusBadge>{market.query.isPending ? "Loading quotes" : "Market quotes / demo"}</StatusBadge>
             </div>
             <div className="mt-5 grid grid-cols-3 gap-3">
               {([
@@ -102,7 +105,7 @@ function Home() {
                   <AssetIcon asset={a} />
                   <p className="mt-3 text-sm font-medium">{name}</p>
                   <p className="text-xs text-muted-foreground">{sym}</p>
-                  <p className="tabular mt-2 text-lg text-foreground/40">— —</p>
+                  <p className="tabular mt-2 text-lg text-foreground">{formatUsd(market.price(sym).usd)}</p><p className="text-xs text-muted-foreground break-words">{market.label(sym)}</p>
                 </div>
               ))}
             </div>
@@ -123,12 +126,12 @@ function Home() {
             <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Market prices</p>
             <h2 className="text-3xl font-medium sm:text-4xl">Bitcoin, Ethereum and Gold.</h2>
           </div>
-          <StatusBadge>Placeholders · prices appear once data is connected</StatusBadge>
+          <StatusBadge>Market quotes · labelled demo fallback</StatusBadge>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
-          <PriceTile label="Bitcoin" symbol="BTC / USD" icon={<AssetIcon asset="btc" />} note="Price placeholder" />
-          <PriceTile label="Ethereum" symbol="ETH / USD" icon={<AssetIcon asset="eth" />} note="Price placeholder" />
-          <PriceTile label="Gold" symbol="XAU / USD · per oz t" icon={<AssetIcon asset="gold" />} note="Price placeholder" />
+          <PriceTile value={formatUsd(market.price("BTC").usd)} status={market.status("BTC")} label="Bitcoin" symbol="BTC / USD" icon={<AssetIcon asset="btc" />} note={market.label("BTC")} />
+          <PriceTile value={formatUsd(market.price("ETH").usd)} status={market.status("ETH")} label="Ethereum" symbol="ETH / USD" icon={<AssetIcon asset="eth" />} note={market.label("ETH")} />
+          <PriceTile value={formatUsd(market.price("XAU").usd)} status={market.status("XAU")} label="Gold" symbol="XAU / USD · per oz t" icon={<AssetIcon asset="gold" />} note={market.label("XAU")} />
         </div>
       </Section>
 
