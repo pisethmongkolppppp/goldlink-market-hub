@@ -20,6 +20,7 @@ export function SiteHeader() {
               to={item.to}
               className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               activeProps={{ className: "text-primary hover:text-primary" }}
+              activeOptions={{ exact: item.to === "/" }}
             >
               {item.label}
             </Link>
@@ -27,7 +28,7 @@ export function SiteHeader() {
         </nav>
         <div className="flex items-center gap-2">
           <Button asChild variant="gold" size="sm" className="hidden sm:inline-flex">
-            <Link to="/exchange">Try the demo</Link>
+            <Link to="/converter">Start Converting</Link>
           </Button>
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
@@ -41,15 +42,6 @@ export function SiteHeader() {
                 <Logo />
               </div>
               <nav className="flex flex-col gap-1" aria-label="Mobile">
-                <Link
-                  to="/"
-                  onClick={() => setOpen(false)}
-                  className="rounded-md px-3 py-2.5 text-base text-muted-foreground hover:bg-accent hover:text-foreground"
-                  activeProps={{ className: "bg-accent text-primary" }}
-                  activeOptions={{ exact: true }}
-                >
-                  Home
-                </Link>
                 {NAV_ITEMS.map((item) => (
                   <Link
                     key={item.to}
@@ -57,6 +49,7 @@ export function SiteHeader() {
                     onClick={() => setOpen(false)}
                     className="rounded-md px-3 py-2.5 text-base text-muted-foreground hover:bg-accent hover:text-foreground"
                     activeProps={{ className: "bg-accent text-primary" }}
+                    activeOptions={{ exact: item.to === "/" }}
                   >
                     {item.label}
                   </Link>

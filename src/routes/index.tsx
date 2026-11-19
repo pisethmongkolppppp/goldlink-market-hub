@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ChartLegend, IllustrativeChart } from "@/components/site/IllustrativeChart";
 import { Section } from "@/components/site/PageHeader";
-import { AssetIcon } from "@/components/site/PriceTile";
+import { AssetIcon, PriceTile } from "@/components/site/PriceTile";
 import { StatusBadge } from "@/components/site/StatusBadge";
 
 export const Route = createFileRoute("/")({
@@ -64,20 +64,20 @@ function Home() {
               <Sparkles className="size-3" /> Design preview
             </StatusBadge>
             <h1 className="mt-6 text-5xl font-medium leading-[1.05] sm:text-6xl lg:text-7xl">
-              Where <span className="text-gradient-gold italic">gold</span> meets crypto.
+              Connect Digital Assets with <span className="text-gradient-gold italic">Real Gold Value.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
-              GoldLink AI puts the world's oldest store of value and the newest digital assets side by
-              side — so you can understand both, compare them, and learn with confidence.
+              Compare cryptocurrency and gold prices in one place. See Bitcoin, Ethereum and gold side
+              by side, and find out what your digital assets are worth in real gold.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild variant="gold" size="xl">
-                <Link to="/gold">
-                  Explore dashboards <ArrowRight />
+                <Link to="/converter">
+                  Start Converting <ArrowRight />
                 </Link>
               </Button>
               <Button asChild variant="goldOutline" size="xl">
-                <Link to="/exchange">Try the exchange demo</Link>
+                <Link to="/gold">View gold prices</Link>
               </Button>
             </div>
             <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
@@ -116,6 +116,21 @@ function Home() {
           </div>
         </div>
       </section>
+
+      <Section className="py-12">
+        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Market prices</p>
+            <h2 className="text-3xl font-medium sm:text-4xl">Bitcoin, Ethereum and Gold.</h2>
+          </div>
+          <StatusBadge>Placeholders · prices appear once data is connected</StatusBadge>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          <PriceTile label="Bitcoin" symbol="BTC / USD" icon={<AssetIcon asset="btc" />} note="Price placeholder" />
+          <PriceTile label="Ethereum" symbol="ETH / USD" icon={<AssetIcon asset="eth" />} note="Price placeholder" />
+          <PriceTile label="Gold" symbol="XAU / USD · per oz t" icon={<AssetIcon asset="gold" />} note="Price placeholder" />
+        </div>
+      </Section>
 
       <Section className="py-16">
         <div className="mb-10 max-w-2xl">

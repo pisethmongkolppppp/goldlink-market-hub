@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { NAV_ITEMS } from "@/lib/nav";
+import { FOOTER_ITEMS } from "@/lib/nav";
 import { Logo } from "./Logo";
 
 export function SiteFooter() {
@@ -15,7 +15,7 @@ export function SiteFooter() {
           </p>
         </div>
         <nav className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3" aria-label="Footer">
-          {NAV_ITEMS.map((item) => (
+          {FOOTER_ITEMS.map((item) => (
             <Link key={item.to} to={item.to} className="text-muted-foreground hover:text-primary">
               {item.label}
             </Link>
