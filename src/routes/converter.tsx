@@ -1,23 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowDown, Calculator } from "lucide-react";
-import { useState } from "react";
+import { ArrowDown, Calculator, Eraser, RefreshCw } from "lucide-react";
+import { useState, type FormEvent } from "react";
 
 import { PageHeader, Section } from "@/components/site/PageHeader";
 import { AssetIcon } from "@/components/site/PriceTile";
 import { StatusBadge } from "@/components/site/StatusBadge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { convertCryptoToGold, GOLD_UNITS, type GoldUnit } from "@/lib/conversion";
+import { cn } from "@/lib/utils";
+import { convertCryptoToGold, TROY_OUNCE_GRAMS, type GoldConversionResult } from "@/lib/conversion";
+import {
+  DEMO_CRYPTOS,
+  DEMO_GOLD_PRICE_PER_GRAM_USD,
+  DEMO_GOLD_PRICE_PER_OZ_USD,
+  DEMO_PRICE_NOTE,
+  demoCryptoPrice,
+  type CryptoSymbol,
+} from "@/lib/demo-prices";
 import { formatAmount, formatUsd } from "@/lib/format";
 
 export const Route = createFileRoute("/converter")({
   head: () => ({
     meta: [
       { title: "Crypto to Gold Converter — GoldLink AI" },
-      { name: "description", content: "Find out how much gold your Bitcoin or Ethereum is worth, in ounces, grams or kilograms." },
+      { name: "description", content: "Turn Bitcoin or Ethereum into an equal weight of gold, in grams and troy ounces, using clearly labelled demonstration prices." },
       { property: "og:title", content: "Crypto to Gold Converter — GoldLink AI" },
-      { property: "og:description", content: "Convert Bitcoin or Ethereum into an equal weight of gold." },
+      { property: "og:description", content: "Convert Bitcoin or Ethereum into gold, shown in grams and troy ounces." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -27,118 +36,208 @@ export const Route = createFileRoute("/converter")({
 
 const toNum = (s: string) => (s.trim() === "" ? NaN : Number(s));
 
-function ConverterPage() {
-  const [coin, setCoin] = useState<"BTC" | "ETH">("BTC");
-  const [amount, setAmount] = useState("1");
-  const [coinPrice, setCoinPrice] = useState("");
-  const [goldPrice, setGoldPrice] = useState("");
-  const [unit, setUnit] = useState<GoldUnit>("oz");
+type Converted = { coin: CryptoSymbol; amount: number; conversion: GoldConversionResult };
 
-  const result = convertCryptoToGold({
-    amount: toNum(amount),
-    cryptoPriceUsd: toNum(coinPrice),
-    goldPricePerOzUsd: toNum(goldPrice),
-    unit,
-  });
-  const unitShort = GOLD_UNITS.find((u) => u.value === unit)!.short;
+function ConverterPage() {
+  const [coin, setCoin] = useState<CryptoSymbol>("BTC");
+  const [amount, setAmount] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<Converted | null>(null);
+
+  const cryptoPrice = demoCryptoPrice(coin);
+  const coinLabel = DEMO_CRYPTOS.find((c) => c.value === coin)!.label;
+
+  const convert = (e: FormEvent) => {
+    e.preventDefault();
+    const value = toNum(amount);
+    const conversion = convertCryptoToGold({
+      amount: value,
+      cryptoPriceUsd: cryptoPrice,
+      goldPricePerGramUsd: DEMO_GOLD_PRICE_PER_GRAM_USD,
+    });
+    if (!conversion) {
+      setResult(null);
+      setError("Enter an amount of Bitcoin or Ethereum greater than zero.");
+      return;
+    }
+    setError(null);
+    setResult({ coin, amount: value, conversion });
+  };
+
+  const clear = () => {
+    setCoin("BTC");
+    setAmount("");
+    setError(null);
+    setResult(null);
+  };
+
+  const stale = result !== null && (result.coin !== coin || toNum(amount) !== result.amount);
 
   return (
     <>
       <PageHeader
         eyebrow="Converter"
         title={<>Turn crypto into <span className="text-gradient-gold italic">gold</span> terms.</>}
-        description="See how much gold your Bitcoin or Ethereum would equal. Live prices aren't connected yet, so enter the prices you want to use."
+        description="Choose Bitcoin or Ethereum, enter an amount, and see the equal weight of gold in grams and troy ounces. The prices used here are demonstration values, not live market data."
       >
-        <StatusBadge>Live prices not connected</StatusBadge>
+        <StatusBadge tone="demo">{DEMO_PRICE_NOTE}</StatusBadge>
       </PageHeader>
 
       <Section className="grid gap-6 py-10 lg:grid-cols-[1.3fr_1fr]">
         <div className="panel p-6 sm:p-8">
-          <div className="space-y-6">
+          <form className="space-y-6" onSubmit={convert} noValidate>
             <fieldset className="space-y-3">
-              <legend className="text-sm font-medium text-muted-foreground">You have</legend>
-              <div className="grid gap-3 sm:grid-cols-[10rem_1fr]">
-                <Select value={coin} onValueChange={(v) => setCoin(v as "BTC" | "ETH")}>
-                  <SelectTrigger className="h-12" aria-label="Cryptocurrency">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="BTC">Bitcoin (BTC)</SelectItem>
-                    <SelectItem value="ETH">Ethereum (ETH)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input
-                  className="tabular h-12 text-lg"
-                  inputMode="decimal"
-                  type="number"
-                  min="0"
-                  step="any"
-                  aria-label="Amount"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
+              <legend className="text-sm font-medium text-muted-foreground">1. Choose a cryptocurrency</legend>
+              <div className="grid gap-2 sm:grid-cols-2" role="group" aria-label="Cryptocurrency">
+                {DEMO_CRYPTOS.map((c) => {
+                  const active = c.value === coin;
+                  return (
+                    <button
+                      key={c.value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setCoin(c.value)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors",
+                        active
+                          ? "border-primary/60 bg-primary/10 shadow-gold"
+                          : "border-border bg-background/40 hover:border-primary/30",
+                      )}
+                    >
+                      <AssetIcon asset={c.value === "BTC" ? "btc" : "eth"} />
+                      <span>
+                        <span className="block text-sm font-medium">{c.label}</span>
+                        <span className="block text-xs text-muted-foreground">Demonstration price used</span>
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </fieldset>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="coin-price">{coin} price (USD)</Label>
-                <Input id="coin-price" className="tabular h-11" type="number" min="0" step="any" placeholder="Enter a price" value={coinPrice} onChange={(e) => setCoinPrice(e.target.value)} />
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-medium text-muted-foreground">2. Enter an amount</legend>
+              <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                <div className="space-y-2">
+                  <Label htmlFor="crypto-amount">Amount of {coinLabel}</Label>
+                  <Input
+                    id="crypto-amount"
+                    className="tabular h-12 text-lg"
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="any"
+                    placeholder="e.g. 0.5"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" className="h-12 px-6 text-base">
+                    <RefreshCw className="size-4" aria-hidden />
+                    Convert
+                  </Button>
+                  <Button type="button" variant="outline" className="h-12 px-5 text-base" onClick={clear}>
+                    <Eraser className="size-4" aria-hidden />
+                    Clear
+                  </Button>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="gold-price">Gold price per troy oz (USD)</Label>
-                <Input id="gold-price" className="tabular h-11" type="number" min="0" step="any" placeholder="Enter a price" value={goldPrice} onChange={(e) => setGoldPrice(e.target.value)} />
-              </div>
-            </div>
+              {error && (
+                <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">
+                  {error}
+                </p>
+              )}
+            </fieldset>
 
-            <div className="flex justify-center">
+            <div className="flex justify-center" aria-hidden>
               <span className="grid size-10 place-items-center rounded-full border border-primary/40 bg-primary/10 text-primary">
                 <ArrowDown className="size-4" />
               </span>
             </div>
 
             <fieldset className="space-y-3">
-              <legend className="text-sm font-medium text-muted-foreground">That equals</legend>
-              <div className="flex flex-col gap-4 rounded-xl border border-primary/30 bg-background/40 p-5 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-4">
-                  <AssetIcon asset="gold" />
-                  <div>
-                    <p className="tabular text-3xl font-medium text-gradient-gold" aria-live="polite">
-                      {result ? `${formatAmount(result.goldAmount, 4)} ${unitShort}` : "—"}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {result ? `Worth ${formatUsd(result.usdValue)}` : "Fill in both prices to see the result"}
-                    </p>
-                  </div>
+              <legend className="text-sm font-medium text-muted-foreground">3. Gold equivalent</legend>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-xl border border-primary/30 bg-background/40 p-5">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Grams of gold</p>
+                  <p className="tabular mt-2 text-3xl font-medium text-gradient-gold sm:text-4xl" aria-live="polite">
+                    {result ? formatAmount(result.conversion.grams, 4) : "—"}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">g</p>
                 </div>
-                <Select value={unit} onValueChange={(v) => setUnit(v as GoldUnit)}>
-                  <SelectTrigger className="h-11 sm:w-44" aria-label="Gold unit">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {GOLD_UNITS.map((u) => (
-                      <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="rounded-xl border border-primary/30 bg-background/40 p-5">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Troy ounces of gold</p>
+                  <p className="tabular mt-2 text-3xl font-medium text-gradient-gold sm:text-4xl" aria-live="polite">
+                    {result ? formatAmount(result.conversion.troyOunces, 4) : "—"}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">oz t</p>
+                </div>
               </div>
+              <p className="text-sm text-muted-foreground">
+                {result
+                  ? `${formatAmount(result.amount, 8)} ${result.coin} is worth ${formatUsd(result.conversion.usdValue)} at the demonstration prices shown below.`
+                  : "Enter an amount and press Convert to see the gold equivalent."}
+              </p>
+              {stale && (
+                <p className="text-xs text-primary">
+                  You changed the inputs — press Convert again to update the result.
+                </p>
+              )}
             </fieldset>
-          </div>
+          </form>
         </div>
 
-        <aside className="panel h-fit p-6">
-          <div className="flex items-center gap-3">
-            <Calculator className="size-5 text-primary" />
-            <h2 className="text-2xl font-medium">How it's calculated</h2>
+        <aside className="space-y-6">
+          <div className="panel p-6">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-medium">Prices used</h2>
+              <StatusBadge tone="demo">Demonstration</StatusBadge>
+            </div>
+            <dl className="mt-4 space-y-3 text-sm">
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-muted-foreground">{coinLabel}</dt>
+                <dd className="tabular font-medium">{formatUsd(cryptoPrice)} each</dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-muted-foreground">Gold per gram</dt>
+                <dd className="tabular font-medium">{formatUsd(DEMO_GOLD_PRICE_PER_GRAM_USD)}</dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-muted-foreground">Gold per troy ounce</dt>
+                <dd className="tabular font-medium">{formatUsd(DEMO_GOLD_PRICE_PER_OZ_USD)}</dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3 border-t border-border/60 pt-3">
+                <dt className="text-muted-foreground">Grams per troy ounce</dt>
+                <dd className="tabular font-medium">{TROY_OUNCE_GRAMS}</dd>
+              </div>
+            </dl>
+            <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+              These are fixed demonstration values so the maths works end to end. They are not live market prices, and
+              no real cryptocurrency or gold is bought, sold or moved.
+            </p>
           </div>
-          <ol className="mt-5 space-y-4 text-sm leading-relaxed text-muted-foreground">
-            <li><span className="text-foreground">1.</span> Your crypto amount × its price = value in US dollars.</li>
-            <li><span className="text-foreground">2.</span> Dollar value ÷ gold price per troy ounce = ounces of gold.</li>
-            <li><span className="text-foreground">3.</span> 1 troy ounce = 31.1035 grams, so we convert to grams or kilograms if you choose.</li>
-          </ol>
-          <p className="mt-6 rounded-lg border border-border bg-muted/40 p-4 text-xs leading-relaxed text-muted-foreground">
-            This is an estimate for learning only. Real trades include fees and price differences between sellers.
-          </p>
+
+          <div className="panel p-6">
+            <div className="flex items-center gap-3">
+              <Calculator className="size-5 text-primary" />
+              <h2 className="text-lg font-medium">How it's calculated</h2>
+            </div>
+            <ol className="mt-4 space-y-3 text-sm leading-relaxed text-muted-foreground">
+              <li>
+                <span className="text-foreground">1.</span> Amount × {coinLabel} price = value in US dollars.
+              </li>
+              <li>
+                <span className="text-foreground">2.</span> Dollar value ÷ gold price per gram = grams of gold.
+              </li>
+              <li>
+                <span className="text-foreground">3.</span> Grams ÷ {TROY_OUNCE_GRAMS} = troy ounces.
+              </li>
+            </ol>
+            <p className="mt-5 rounded-lg border border-border bg-muted/40 p-4 text-xs leading-relaxed text-muted-foreground">
+              This is an estimate for learning only. Real trades include fees and price differences between sellers.
+            </p>
+          </div>
         </aside>
       </Section>
     </>

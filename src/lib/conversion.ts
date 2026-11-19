@@ -1,38 +1,37 @@
 export const TROY_OUNCE_GRAMS = 31.1034768;
 
-export type GoldUnit = "oz" | "g" | "kg";
-
-export const GOLD_UNITS: { value: GoldUnit; label: string; short: string }[] = [
-  { value: "oz", label: "Troy ounces", short: "oz t" },
-  { value: "g", label: "Grams", short: "g" },
-  { value: "kg", label: "Kilograms", short: "kg" },
-];
-
-const OUNCES_PER_UNIT: Record<GoldUnit, number> = {
-  oz: 1,
-  g: 1 / TROY_OUNCE_GRAMS,
-  kg: 1000 / TROY_OUNCE_GRAMS,
-};
-
-export interface ConversionInput {
+export interface GoldConversionInput {
+  /** Amount of cryptocurrency, e.g. 0.5 BTC. */
   amount: number;
+  /** Price of one unit of that cryptocurrency in US dollars. */
   cryptoPriceUsd: number;
-  goldPricePerOzUsd: number;
-  unit: GoldUnit;
+  /** Price of one gram of gold in US dollars. */
+  goldPricePerGramUsd: number;
 }
 
-export interface ConversionResult {
+export interface GoldConversionResult {
+  /** Crypto amount × crypto price. */
   usdValue: number;
-  goldAmount: number;
+  /** (Crypto amount × crypto price) ÷ gold price per gram. */
+  grams: number;
+  /** Gold grams ÷ 31.1034768. */
+  troyOunces: number;
 }
 
-/** Converts a crypto amount into an equivalent weight of gold using user-supplied prices. */
-export function convertCryptoToGold(input: ConversionInput): ConversionResult | null {
-  const { amount, cryptoPriceUsd, goldPricePerOzUsd, unit } = input;
-  if (![amount, cryptoPriceUsd, goldPricePerOzUsd].every((n) => Number.isFinite(n) && n > 0)) {
+/**
+ * Converts a crypto amount into an equivalent weight of gold.
+ *
+ * gold grams = (crypto amount × crypto price in USD) ÷ gold price per gram in USD
+ * troy ounces = gold grams ÷ 31.1034768
+ *
+ * Returns null when any input is missing, zero, negative or not a number.
+ */
+export function convertCryptoToGold(input: GoldConversionInput): GoldConversionResult | null {
+  const { amount, cryptoPriceUsd, goldPricePerGramUsd } = input;
+  if (![amount, cryptoPriceUsd, goldPricePerGramUsd].every((n) => Number.isFinite(n) && n > 0)) {
     return null;
   }
   const usdValue = amount * cryptoPriceUsd;
-  const ounces = usdValue / goldPricePerOzUsd;
-  return { usdValue, goldAmount: ounces / OUNCES_PER_UNIT[unit] };
+  const grams = usdValue / goldPricePerGramUsd;
+  return { usdValue, grams, troyOunces: grams / TROY_OUNCE_GRAMS };
 }
